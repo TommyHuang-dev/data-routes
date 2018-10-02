@@ -65,15 +65,15 @@ def update_moves(lines, obs):
         for j in range(len(final_list[i])):
             # if its on the edge, only add the one before it
             if final_list[i][j] == 0:
+                # free node: no blocks
+                if [2 * i, j - 1] not in obs and [2 * i - 1, j] not in obs and i > 0 and j > 0:
+                    final_list[i][j] = final_list[i - 1][j] + final_list[i][j - 1]
                 # left edge or top blocker
-                if (i == 0 and [2 * i, j - 1] not in obs) or [2 * i - 1, j] in obs:
+                elif (i == 0 or [2 * i - 1, j] in obs) and [2 * i, j - 1] not in obs:
                     final_list[i][j] = final_list[i][j - 1]
                 # top edge or left blocker
-                elif (j == 0 and [2 * i - 1, j] not in obs) or [2 * i, j - 1] in obs:  # upper edge
+                elif (j == 0  or [2 * i, j - 1] in obs) and [2 * i - 1, j] not in obs:  # upper edge
                     final_list[i][j] = final_list[i - 1][j]
-                # otherwise add left and above nodes
-                elif [2 * i, j - 1] not in obs and [2 * i - 1, j] not in obs:
-                    final_list[i][j] = final_list[i - 1][j] + final_list[i][j - 1]
 
     return final_list
 
