@@ -12,7 +12,7 @@ from pygame import gfxdraw
 # b_len: pixel length of border, must be at least 1
 # num: how many lines to draw in the form [vertical lines, horizontal lines], must be at least 2
 # col: colour of the lines
-def draw_grid(display, st_pos, b_len, num, col):
+def draw_grid(display, st_pos, b_len, num, col, paths):
     # input check
     if b_len[0] < 1 or b_len[1] < 1 or num[0] < 2 or num[1] < 2:
         raise ValueError('draw_grid() called with invalid arguments for length or number of lines')
@@ -20,21 +20,29 @@ def draw_grid(display, st_pos, b_len, num, col):
     # lock screen, this might make it faster to draw stuff? idk
     display.lock()
     # separation for vertical, horizontal lines
-    sep = [b_len[0] // num[0] + 1, b_len[1] // num[1] + 1]
+    sep = [b_len[0] / num[0] + 1, b_len[1] / num[1] + 1]
 
     # vertical lines
     for i in range(num[0] + 1):
-        pygame.draw.line(display, col, (st_pos[0] + sep[0] * i, st_pos[1]),
-                         (st_pos[0] + sep[0] * i, st_pos[1] + sep[1] * num[1]))
+        pygame.draw.line(display, col, (int(st_pos[0] + sep[0] * i), int(st_pos[1])),
+                         (int(st_pos[0] + sep[0] * i), int(st_pos[1] + sep[1] * num[1])))
     # horizontal lines
     for i in range(num[1] + 1):
-        pygame.draw.line(display, col, (st_pos[0], st_pos[1] + sep[1] * i),
-                         (st_pos[0] + sep[0] * num[0], st_pos[1] + sep[1] * i))
+        pygame.draw.line(display, col, (int(st_pos[0]), int(st_pos[1] + sep[1] * i)),
+                         (int(st_pos[0] + sep[0] * num[0]), int(st_pos[1] + sep[1] * i)))
+    display.unlock()
+
+    # draw path numbers
+    for i in range(len(paths)):  # columns
+        cur_pos = [int(st_pos[0] + sep[0] * i + 4), int(st_pos[1] - 8)]
+        for j in range(len(paths[i])):  # rows
+            cur_pos[1] = int(st_pos[1] + j * sep[1] - 8)
+            create_text(display, cur_pos, str(paths[i][j]), False, smolFont, (0, 0, 0))
 
     # starting and ending circles
     pygame.draw.circle(screen, (25, 200, 25), st_pos, 5)
-    pygame.draw.circle(screen, (200, 25, 25), (st_pos[0] + sep[0] * num[0], st_pos[1] + sep[1] * num[1]), 5)
-    display.unlock()
+    pygame.draw.circle(screen, (200, 25, 25), (int(st_pos[0] + sep[0] * num[0]),
+                                               int(st_pos[1] + sep[1] * num[1])), 5)
 
 
 # creates some text centered on an x y coordinate
@@ -48,15 +56,16 @@ def create_text(display, location, text, centered, font, col):
 
 
 # creates a 2d array based on the lines and obstacles (obstacles WIP)
+# lines is [vertical, horizontal liens]
 def update_moves(lines, obs):
     # initialize list. -1 means it cannot be travelled to
-    final_list = [[0 for j in range(lines[1])] for i in range(lines[0])]
+    final_list = [[0 for j in range(lines[1] + 1)] for i in range(lines[0] + 1)]
     # first value (starting point)
     final_list[0][0] = 1
 
     # calculations! :D
-    for i in range(lines[0]):
-        for j in range(lines[1]):
+    for i in range(len(final_list)):
+        for j in range(len(final_list[i])):
             # if its on the edge, only add the one before it
             if final_list[i][j] == 0:
                 if i == 0:
@@ -89,6 +98,7 @@ imgMinus = pygame.image.load("minus-sign.png").convert_alpha()
 
 # fonts
 defFont = pygame.font.SysFont('Trebuchet MS', 24, False)
+smolFont = pygame.font.SysFont('Trebuchet MS', 18, False)
 
 # colours
 colInc = [220, 220, 220]
@@ -100,11 +110,11 @@ colGrid = [0, 0, 0]
 mousePos = []
 
 # general map variables
-mapPos = [50, 50]
+mapPos = [45, 45]
 mapLen = [600, 550]  # width, height
-numLines = [5, 5]  # vertical, horizontal lines
+numLines = [4, 4]  # vertical, horizontal lines
 obstacles = [] # uses the lines instead of intersections
-numOptions = update_moves(numLines, obstacles)  # 2d array of the number of moves to every location
+nPath = update_moves(numLines, obstacles)  # 2d array of the number of moves to every location
 
 # button rect objects
 # increase/decrease number of vertical lines (min 2)
@@ -134,8 +144,8 @@ while True:
     # background
     screen.fill((250, 250, 250))
 
-    # main grid
-    draw_grid(screen, mapPos, mapLen, numLines, colGrid)
+    # main grid and path numbers
+    draw_grid(screen, mapPos, mapLen, numLines, colGrid, nPath)
 
     # draw buttons
     for i in range(len(listOfBut)):
@@ -167,6 +177,8 @@ while True:
                     numLines[1] -= 1
                 elif i == 3:
                     numLines[1] += 1
+
+                nPath = update_moves(numLines, obstacles)
 
     # update display!
     pygame.display.update()
