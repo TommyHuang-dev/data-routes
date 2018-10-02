@@ -3,10 +3,6 @@ import sys
 import pygame
 from pygame import gfxdraw
 
-# TODO: make it actually calculate the number of paths
-# TODO: add obstacles
-# TODO: switch between the number of x choose x
-
 # display: name of the pygame screen
 # st_pos: starting position in the form [x pixel coordinate, y pixel coordinate]
 # b_len: pixel length of border, must be at least 1
@@ -37,7 +33,7 @@ def draw_grid(display, st_pos, b_len, num, col, paths):
         cur_pos = [int(st_pos[0] + sep[0] * i + 4), int(st_pos[1] - 8)]
         for j in range(len(paths[i])):  # rows
             cur_pos[1] = int(st_pos[1] + j * sep[1] - 8)
-            if paths[i][j] != 0:
+            if paths[i][j] > 0:
                 create_text(display, cur_pos, str(paths[i][j]), False, smolFont, (25, 25, 150))
 
     # starting and ending circles
@@ -69,12 +65,14 @@ def update_moves(lines, obs):
         for j in range(len(final_list[i])):
             # if its on the edge, only add the one before it
             if final_list[i][j] == 0:
-                if i == 0:
+                # left edge or top blocker
+                if (i == 0 and [2 * i, j - 1] not in obs) or [2 * i - 1, j] in obs:
                     final_list[i][j] = final_list[i][j - 1]
-                elif j == 0:
+                # top edge or left blocker
+                elif (j == 0 and [2 * i - 1, j] not in obs) or [2 * i, j - 1] in obs:  # upper edge
                     final_list[i][j] = final_list[i - 1][j]
                 # otherwise add left and above nodes
-                else:
+                elif [2 * i, j - 1] not in obs and [2 * i - 1, j] not in obs:
                     final_list[i][j] = final_list[i - 1][j] + final_list[i][j - 1]
 
     return final_list
@@ -98,7 +96,7 @@ def update_obs_buttons(pos, length, num):
         # horizontal barriers
         else:
             but_list[i] = [pygame.Rect(int(sep[0] * (i // 2 + 0.5) + pos[0]) - 5, int(sep[1] * j + pos[1]) - 5, 11, 11)
-                           for j in range(num[0] + 1)]
+                           for j in range(num[1] + 1)]
 
     return but_list
 
@@ -129,6 +127,7 @@ smolFont = pygame.font.SysFont('Trebuchet MS', 18, False)
 colInc = [220, 220, 220]
 colDec = [220, 220, 220]
 colGrid = [0, 0, 0]
+colBox = [125, 125, 125]
 
 # variables
 # i/o variables
@@ -139,13 +138,12 @@ mapPos = [40, 40]
 mapLen = [620, 620]  # width, height
 numLines = [4, 4]  # vertical, horizontal lines
 
-# obstacles and path
-obstacles = []  # uses the lines instead of intersections
-nPath = update_moves(numLines, obstacles)  # 2d array of the number of moves to every location
-
-# obstacles_button
+# obstacles button
 butObsList = update_obs_buttons(mapPos, mapLen, numLines)
 selObsList = []
+
+# obstacles and path
+nPath = update_moves(numLines, selObsList)  # 2d array of the number of moves to every location
 
 # button rect objects
 # increase/decrease number of vertical lines (min 2)
@@ -183,15 +181,18 @@ while True:
         for j in range(len(butObsList[i])):
             # if it has NOT been selected, don't fill it
             if [i, j] not in selObsList:
-                pygame.draw.rect(screen, (25, 25, 25), butObsList[i][j], 1)
+                pygame.draw.rect(screen, colBox, butObsList[i][j], 1)
             else:
-                pygame.draw.rect(screen, (25, 25, 25), butObsList[i][j])
+                pygame.draw.rect(screen, colGrid, butObsList[i][j])
             # if mouse button is pressed and its selected, add it to da list
             if mousePressed[0] == 1 and butObsList[i][j].collidepoint(mousePos[0], mousePos[1]):
                 if [i, j] not in selObsList:
                     selObsList.append([i, j])
                 else:  # delete if its already there (toggle)
                     del (selObsList[selObsList.index([i, j])])
+                # update pathing
+                butObsList = update_obs_buttons(mapPos, mapLen, numLines)
+                nPath = update_moves(numLines, selObsList)
 
     # draw buttons
     for i in range(len(listOfBut)):
@@ -223,9 +224,9 @@ while True:
                     numLines[1] -= 1
                 elif i == 3:
                     numLines[1] += 1
-
+                # update pathing
                 butObsList = update_obs_buttons(mapPos, mapLen, numLines)
-                nPath = update_moves(numLines, obstacles)
+                nPath = update_moves(numLines, selObsList)
 
     # update display!
     pygame.display.update()
