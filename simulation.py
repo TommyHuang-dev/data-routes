@@ -20,7 +20,7 @@ def draw_grid(display, st_pos, b_len, num, col, paths):
     # lock screen, this might make it faster to draw stuff? idk
     display.lock()
     # separation for vertical, horizontal lines
-    sep = [b_len[0] / num[0] + 1, b_len[1] / num[1] + 1]
+    sep = [b_len[0] / num[0], b_len[1] / num[1]]
 
     # vertical lines
     for i in range(num[0] + 1):
@@ -79,6 +79,30 @@ def update_moves(lines, obs):
 
     return final_list
 
+
+# creates a list of rect objects for the barriers
+# list of 2n + 1 columns [column][row]
+# each column has n (even) or n+1 buttons
+def update_obs_buttons(pos, length, num):
+    # list of buttons [pygame.Rect object]
+    but_list = [[] for i in range(num[0] * 2 + 1)]
+    # separation distance between buttons
+    sep = [length[0] / num[0], length[1] / num[1]]
+
+    # loop :D
+    for i in range(num[0] * 2 + 1):
+        # vertical barriers
+        if i % 2 == 0:
+            but_list[i] = [pygame.Rect(int(sep[0] * i // 2 + pos[0]) - 5, int(sep[1] * (j + 0.5) + pos[1]) - 5, 11, 11)
+                           for j in range(num[1])]
+        # horizontal barriers
+        else:
+            but_list[i] = [pygame.Rect(int(sep[0] * (i // 2 + 0.5) + pos[0]) - 5, int(sep[1] * j + pos[1]) - 5, 11, 11)
+                           for j in range(num[0] + 1)]
+
+    return but_list
+
+
 # ---- SETUP ----
 
 # setup pygame
@@ -89,7 +113,7 @@ time.sleep(0.5)
 # setup display and clock
 clock = pygame.time.Clock()
 disL = 1000
-disH = 650
+disH = 700
 screen = pygame.display.set_mode((disL, disH))
 pygame.display.set_caption("Route-simulation")
 
@@ -111,19 +135,25 @@ colGrid = [0, 0, 0]
 mousePos = []
 
 # general map variables
-mapPos = [45, 45]
-mapLen = [600, 550]  # width, height
+mapPos = [40, 40]
+mapLen = [620, 620]  # width, height
 numLines = [4, 4]  # vertical, horizontal lines
-obstacles = [] # uses the lines instead of intersections
+
+# obstacles and path
+obstacles = []  # uses the lines instead of intersections
 nPath = update_moves(numLines, obstacles)  # 2d array of the number of moves to every location
+
+# obstacles_button
+butObsList = update_obs_buttons(mapPos, mapLen, numLines)
+selObsList = []
 
 # button rect objects
 # increase/decrease number of vertical lines (min 2)
-butDecVert = pygame.Rect(775, disH // 2 - 125, 50, 50)
-butIncVert = pygame.Rect(850, disH // 2 - 125, 50, 50)
+butDecVert = pygame.Rect(800, disH // 2 - 125, 50, 50)
+butIncVert = pygame.Rect(875, disH // 2 - 125, 50, 50)
 # increase/decrease number of horizontal lines (min 2)
-butDecHor = pygame.Rect(775, disH // 2 + 100, 50, 50)
-butIncHor = pygame.Rect(850, disH // 2 + 100, 50, 50)
+butDecHor = pygame.Rect(800, disH // 2 + 100, 50, 50)
+butIncHor = pygame.Rect(875, disH // 2 + 100, 50, 50)
 
 listOfBut = [butDecVert, butIncVert, butDecHor, butIncHor]  # list for easier access
 
@@ -147,6 +177,21 @@ while True:
 
     # main grid and path numbers
     draw_grid(screen, mapPos, mapLen, numLines, colGrid, nPath)
+
+    # draw barrier squares
+    for i in range(len(butObsList)):
+        for j in range(len(butObsList[i])):
+            # if it has NOT been selected, don't fill it
+            if [i, j] not in selObsList:
+                pygame.draw.rect(screen, (25, 25, 25), butObsList[i][j], 1)
+            else:
+                pygame.draw.rect(screen, (25, 25, 25), butObsList[i][j])
+            # if mouse button is pressed and its selected, add it to da list
+            if mousePressed[0] == 1 and butObsList[i][j].collidepoint(mousePos[0], mousePos[1]):
+                if [i, j] not in selObsList:
+                    selObsList.append([i, j])
+                else:  # delete if its already there (toggle)
+                    del (selObsList[selObsList.index([i, j])])
 
     # draw buttons
     for i in range(len(listOfBut)):
@@ -179,6 +224,7 @@ while True:
                 elif i == 3:
                     numLines[1] += 1
 
+                butObsList = update_obs_buttons(mapPos, mapLen, numLines)
                 nPath = update_moves(numLines, obstacles)
 
     # update display!
