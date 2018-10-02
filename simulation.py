@@ -3,6 +3,9 @@ import sys
 import pygame
 from pygame import gfxdraw
 
+# TODO: make it actually calculate the number of paths
+# TODO: add obstacles
+# TODO: switch between the number of x choose x
 
 # display: name of the pygame screen
 # st_pos: starting position in the form [x pixel coordinate, y pixel coordinate]
@@ -27,6 +30,10 @@ def draw_grid(display, st_pos, b_len, num, col):
     for i in range(num[1] + 1):
         pygame.draw.line(display, col, (st_pos[0], st_pos[1] + sep[1] * i),
                          (st_pos[0] + sep[0] * num[0], st_pos[1] + sep[1] * i))
+
+    # starting and ending circles
+    pygame.draw.circle(screen, (25, 200, 25), st_pos, 5)
+    pygame.draw.circle(screen, (200, 25, 25), (st_pos[0] + sep[0] * num[0], st_pos[1] + sep[1] * num[1]), 5)
     display.unlock()
 
 
@@ -40,6 +47,28 @@ def create_text(display, location, text, centered, font, col):
         display.blit(display_text, (location[0], location[1] - text_rect[3] // 2))
 
 
+# creates a 2d array based on the lines and obstacles (obstacles WIP)
+def update_moves(lines, obs):
+    # initialize list. -1 means it cannot be travelled to
+    final_list = [[0 for j in range(lines[1])] for i in range(lines[0])]
+    # first value (starting point)
+    final_list[0][0] = 1
+
+    # calculations! :D
+    for i in range(lines[0]):
+        for j in range(lines[1]):
+            # if its on the edge, only add the one before it
+            if final_list[i][j] == 0:
+                if i == 0:
+                    final_list[i][j] = final_list[i][j - 1]
+                elif j == 0:
+                    final_list[i][j] = final_list[i - 1][j]
+                # otherwise add left and above nodes
+                else:
+                    final_list[i][j] = final_list[i - 1][j] + final_list[i][j - 1]
+
+    return final_list
+
 # ---- SETUP ----
 
 # setup pygame
@@ -50,7 +79,7 @@ time.sleep(0.5)
 # setup display and clock
 clock = pygame.time.Clock()
 disL = 1000
-disH = 600
+disH = 650
 screen = pygame.display.set_mode((disL, disH))
 pygame.display.set_caption("Route-simulation")
 
@@ -71,9 +100,11 @@ colGrid = [0, 0, 0]
 mousePos = []
 
 # general map variables
-mapPos = [75, 50]
-mapLen = [550, 500]  # width, height
-numLines = [3, 3]  # vertical, horizontal lines
+mapPos = [50, 50]
+mapLen = [600, 550]  # width, height
+numLines = [5, 5]  # vertical, horizontal lines
+obstacles = [] # uses the lines instead of intersections
+numOptions = update_moves(numLines, obstacles)  # 2d array of the number of moves to every location
 
 # button rect objects
 # increase/decrease number of vertical lines (min 2)
@@ -134,7 +165,7 @@ while True:
                     numLines[0] += 1
                 elif i == 2 and numLines[1] > 2:
                     numLines[1] -= 1
-                elif i  == 3 and numLines[1] > 2:
+                elif i == 3:
                     numLines[1] += 1
 
     # update display!
