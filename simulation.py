@@ -37,7 +37,8 @@ def draw_grid(display, st_pos, b_len, num, col, paths):
         cur_pos = [int(st_pos[0] + sep[0] * i + 4), int(st_pos[1] - 8)]
         for j in range(len(paths[i])):  # rows
             cur_pos[1] = int(st_pos[1] + j * sep[1] - 8)
-            create_text(display, cur_pos, str(paths[i][j]), False, smolFont, (25, 25, 150))
+            if paths[i][j] != 0:
+                create_text(display, cur_pos, str(paths[i][j]), False, smolFont, (25, 25, 150))
 
     # starting and ending circles
     pygame.draw.circle(screen, (25, 200, 25), st_pos, 5)
