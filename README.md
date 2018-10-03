@@ -1,7 +1,6 @@
 # data-routes
-for data assignment
 
-U will need Python 3 and pygame to run this
+Python 3 and Pygame are needed to run this
 
 Use the + and - buttons to change the grid size
 
